@@ -116,6 +116,7 @@ export function registerReducer(kernel: SolKernel, bus: HookBus): void {
 			result =
 				cached ??
 				(await callReducerModel({
+					kernel,
 					client: kernel.input.client,
 					directory: kernel.input.directory,
 					parentSessionID: input.sessionID,

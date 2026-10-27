@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { chmod, lstat, mkdir, open } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
 	DEFAULT_COMPACTION_ECONOMICS,
@@ -130,7 +131,11 @@ export function registerOnlineContextCompact(kernel: SolKernel, bus: HookBus): v
 	};
 
 	const persist = (sessionID: string, state: OccState): void => {
-		const path = join(kernel.sessionRoot(sessionID), "online-context-compact", "state.json");
+		const sessionRoot = kernel.sessionRoot(sessionID);
+		const projectRoot = dirname(sessionRoot);
+		const dataRoot = dirname(projectRoot);
+		const path = join(sessionRoot, "online-context-compact", "state.json");
+		const directory = dirname(path);
 		const payload = JSON.stringify({
 			schema: "sol_opencode_online_context_compact/1",
 			plan: state.plan,
@@ -143,8 +148,32 @@ export function registerOnlineContextCompact(kernel: SolKernel, bus: HookBus): v
 			providerID: state.providerID,
 			modelID: state.modelID,
 		});
-		void mkdir(dirname(path), { recursive: true })
-			.then(() => writeFile(path, payload, "utf8"))
+		const ensurePrivateDirectory = async (path: string): Promise<void> => {
+			await mkdir(path, { recursive: true, mode: 0o700 });
+			const directoryStats = await lstat(path);
+			if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink()) {
+				throw new Error("Online Context Compact state path is not a regular directory");
+			}
+			await chmod(path, 0o700);
+		};
+
+		void ensurePrivateDirectory(dataRoot)
+			.then(() => ensurePrivateDirectory(projectRoot))
+			.then(() => ensurePrivateDirectory(sessionRoot))
+			.then(() => ensurePrivateDirectory(directory))
+			.then(async () => {
+				const handle = await open(
+					path,
+					constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | constants.O_NOFOLLOW,
+					0o600,
+				);
+				try {
+					await handle.chmod(0o600);
+					await handle.writeFile(payload, "utf8");
+				} finally {
+					await handle.close();
+				}
+			})
 			.catch(() => undefined);
 	};
 

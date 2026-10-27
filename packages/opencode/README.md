@@ -1,6 +1,6 @@
 # @alicekk/sol-opencode
 
-[简体中文](https://github.com/ImKK666/SoL-OpenCode/blob/main/README.md) | **English**
+[Project repository](https://github.com/ImKK666/SoL-OpenCode) | **English**
 
 An [OpenCode](https://opencode.ai) plugin that ports the five token-efficiency
 mechanisms from NVIDIA's [SoL-Pi](https://github.com/NVlabs/SoL-Pi).
@@ -14,15 +14,15 @@ nothing until you enable at least one.
 
 ---
 
-## 中文快速开始
+## Quick start
 
-**不需要 `npm install`。** OpenCode 启动时会用 Bun 自动安装 npm 插件，缓存到
-`~/.cache/opencode/node_modules/`。
+**No `npm install` is required.** OpenCode automatically installs npm plugins
+with Bun at startup and caches them under `~/.cache/opencode/node_modules/`.
 
-在 OpenCode 配置里加上插件即可：
+Add the plugin to your OpenCode configuration:
 
-- 项目级：项目根目录的 `opencode.json`
-- 全局：`~/.config/opencode/opencode.json`
+- Per project: `opencode.json` in the project root
+- Globally: `~/.config/opencode/opencode.json`
 
 ```jsonc
 {
@@ -40,13 +40,16 @@ nothing until you enable at least one.
 }
 ```
 
-上面是**五个机制全开**。`compaction.auto: false` 是 `onlineContextCompact`
-生效的前提。重启 OpenCode 生效。
+The configuration above enables **all five mechanisms**. Set
+`compaction.auto: false` for `onlineContextCompact` to work as intended, then
+restart OpenCode.
 
-**插件本身默认全部关闭**，只写 `"@alicekk/sol-opencode"`（字符串形式）则一个都不开；
-上面的全开是你显式配置的结果。选项写在 `["包名", { … }]` 元组的**第二项**。
+**All mechanisms are off by default.** Adding only the package name as a string
+(`"@alicekk/sol-opencode"`) leaves them disabled. Options go in the **second
+element** of the `["package", { … }]` tuple.
 
-想最省心地起步，只开这两个（都不改写工具输出内容）：
+For a conservative start, enable only these two mechanisms; neither rewrites
+tool output:
 
 ```jsonc
 {
@@ -60,29 +63,32 @@ nothing until you enable at least one.
 }
 ```
 
-验证是否加载成功：
+Verify that the plugin loaded:
 
 ```bash
 npx -p @alicekk/sol-opencode sol-trajectory sessions
 ```
 
-若目录一直为空，说明插件没加载——检查包名是否精确为
-`@alicekk/sol-opencode`，并确认已重启 OpenCode。
+If the directory remains empty, the plugin may not have loaded. Check that the
+package name is exactly `@alicekk/sol-opencode` and restart OpenCode.
 
-开启 `onlineContextCompact` 时，请同时设置 `"compaction": { "auto": false }`，
-避免与 OpenCode 内置的按体积压缩互相竞争。
+When enabling `onlineContextCompact`, also set
+`"compaction": { "auto": false }` to avoid competing with OpenCode's built-in
+size-based compaction.
 
-**隐私：** trajectory inspector 只记录元数据（不含提示词、参数、输出）；
-仅 reducer 在启用后会把符合条件的诊断日志发给模型，它默认关闭。
-归档目录默认在 `~/.local/share/sol-opencode`。
+**Privacy:** Trajectory Inspector stores metadata only (no prompts, arguments,
+or outputs). The reducer is the only mechanism that sends eligible diagnostic
+logs to a model, and it is disabled by default. Archives are stored under
+`~/.local/share/sol-opencode` by default.
 
-完整机制说明与选项默认值见下方英文部分。
+See the sections below for the complete mechanism descriptions and option
+defaults.
 
 ---
 
 ## Requirements
 
-- OpenCode with plugin support (`@opencode-ai/plugin` ≥ 1.18.30)
+- OpenCode with plugin support (`@opencode-ai/plugin` ≥ 1.19.4)
 - Node.js ≥ 22.19 — only needed for the optional `sol-trajectory` CLI
 
 ## Install

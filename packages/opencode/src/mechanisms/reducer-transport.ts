@@ -11,6 +11,7 @@ import {
 	type NormalizedUsage,
 	type ReducerModelResult,
 } from "@alicekk/sol-opencode-core";
+import type { SolKernel } from "../kernel.ts";
 
 interface PromptPart {
 	readonly type?: string;
@@ -65,6 +66,7 @@ function usageFrom(info: AssistantInfo): NormalizedUsage {
 }
 
 export interface ReducerTransportInput {
+	readonly kernel: SolKernel;
 	readonly client: PluginInput["client"];
 	readonly directory: string;
 	readonly parentSessionID: string;
@@ -95,6 +97,7 @@ export async function callReducerModel(input: ReducerTransportInput): Promise<Re
 	if (typeof childID !== "string" || childID.length === 0) {
 		throw new Error("reducer child session creation returned no id");
 	}
+	input.kernel.markAuxSession(childID);
 
 	try {
 		const pending = client.session.prompt({
@@ -120,6 +123,10 @@ export async function callReducerModel(input: ReducerTransportInput): Promise<Re
 			usage: usageFrom(info),
 		};
 	} finally {
-		await client.session.delete({ path: { id: childID }, query: { directory } }).catch(() => undefined);
+		try {
+			await client.session.delete({ path: { id: childID }, query: { directory } }).catch(() => undefined);
+		} finally {
+			input.kernel.unmarkAuxSession(childID);
+		}
 	}
 }

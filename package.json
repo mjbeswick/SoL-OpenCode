@@ -33,7 +33,11 @@
 	"devDependencies": {
 		"@types/node": "24.12.4",
 		"typescript": "5.9.3",
-		"vitest": "4.1.9"
+		"vitest": "4.1.12"
+	},
+	"overrides": {
+		"effect": "4.0.0-beta.107",
+		"zod": "4.6.6"
 	},
 	"license": "MIT"
 }

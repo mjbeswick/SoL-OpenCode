@@ -13,6 +13,7 @@ export interface SolKernel {
 	sessionRoot(sessionID: string): string;
 	isAuxSession(sessionID: string): boolean;
 	markAuxSession(sessionID: string): void;
+	unmarkAuxSession(sessionID: string): void;
 	log(message: string): void;
 }
 
@@ -25,6 +26,9 @@ export function createKernel(input: PluginInput, config: SolConfig): SolKernel {
 		isAuxSession: (sessionID) => auxSessions.has(sessionID),
 		markAuxSession: (sessionID) => {
 			auxSessions.add(sessionID);
+		},
+		unmarkAuxSession: (sessionID) => {
+			auxSessions.delete(sessionID);
 		},
 		log: (message) => {
 			console.error(`[sol-opencode] ${message}`);

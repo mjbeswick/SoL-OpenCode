@@ -2,9 +2,9 @@
  * SPDX-FileCopyrightText: Copyright (c) 2026 ImKK666. All rights reserved.
  * SPDX-License-Identifier: MIT
  */
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { PluginInput } from "@opencode-ai/plugin";
 import {
 	REDUCER_RECEIPT_PREFIX,
@@ -23,7 +23,10 @@ interface ClientCalls {
 	summarize: number;
 }
 
-function makeClient(responseText: string): { client: PluginInput["client"]; calls: ClientCalls } {
+function makeClient(
+	responseText: string,
+	onPrompt?: () => void | Promise<void>,
+): { client: PluginInput["client"]; calls: ClientCalls } {
 	const calls: ClientCalls = { create: 0, prompt: 0, delete: 0, summarize: 0 };
 	const client = {
 		session: {
@@ -33,6 +36,7 @@ function makeClient(responseText: string): { client: PluginInput["client"]; call
 			},
 			prompt: async () => {
 				calls.prompt += 1;
+				await onPrompt?.();
 				return {
 					data: {
 						info: {
@@ -228,10 +232,16 @@ describe("Evidence-Preserving Reducer end-to-end", () => {
 			uncertain: false,
 			evidence: [{ kind: "failure", quote: "error: kaboom" }],
 		});
-		const { client, calls } = makeClient(receipt);
-		const hooks = hooksOf(
+		let hooks: Record<string, unknown>;
+		const { client, calls } = makeClient(receipt, async () => {
+			await call(hooks, "event")({
+				event: { type: "session.created", properties: { sessionID: "child-1" } },
+			});
+		});
+		hooks = hooksOf(
 			await SolOpenCodePlugin(fakeInput(dataHome, client, fakeShell("", 0)), {
 				evidencePreservingReducer: { enabled: true },
+				trajectoryInspector: { enabled: true },
 			}),
 		);
 		const output: Record<string, unknown> = { output: body, metadata: { exit: 1 } };
@@ -242,6 +252,8 @@ describe("Evidence-Preserving Reducer end-to-end", () => {
 		expect(String(output["output"]).startsWith(REDUCER_RECEIPT_PREFIX)).toBe(true);
 		expect(calls.create).toBe(1);
 		expect(calls.delete).toBe(1);
+		const trajectory = await toolMap(hooks)["sol_trajectory"]?.execute({}, { sessionID: "child-1" });
+		expect(trajectory).toBe("No trajectory records for this session.");
 	});
 
 	it("leaves the original in place when a quote cannot be verified", async () => {
@@ -282,8 +294,57 @@ describe("Online Context Compact end-to-end", () => {
 		expect(context).toHaveLength(2);
 		expect(context[1]).toContain("Preserve completed work");
 
-		await call(hooks, "event")({ type: "session.idle", properties: { sessionID: "s1" } });
+		await call(hooks, "event")({ event: { type: "session.idle", properties: { sessionID: "s1" } } });
 		await new Promise((resolveDelay) => setTimeout(resolveDelay, 10));
 		expect(calls.summarize).toBe(0);
+	});
+
+	it("stores plan state with private directory and file permissions", async () => {
+		const { client } = makeClient("");
+		const hooks = hooksOf(
+			await SolOpenCodePlugin(fakeInput(dataHome, client, fakeShell("", 0)), {
+				onlineContextCompact: { enabled: true },
+			}),
+		);
+		await call(hooks, "event")({
+			event: {
+				type: "todo.updated",
+				properties: {
+					sessionID: "s-private",
+					todos: [{ id: "plan-1", content: "Private project goal", status: "pending" }],
+				},
+			},
+		});
+		await call(hooks, "event")({ event: { type: "session.compacted", properties: { sessionID: "s-private" } } });
+
+		const stateDirectory = join(dataHome, projectSlug(dataHome), "s-private", "online-context-compact");
+		const statePath = join(stateDirectory, "state.json");
+		let stateStat = await stat(statePath).catch(() => undefined);
+		for (let attempt = 0; stateStat === undefined && attempt < 20; attempt++) {
+			await new Promise((resolveDelay) => setTimeout(resolveDelay, 5));
+			stateStat = await stat(statePath).catch(() => undefined);
+		}
+		expect(stateStat).toBeDefined();
+		expect(stateStat!.mode & 0o777).toBe(0o600);
+		expect((await stat(stateDirectory)).mode & 0o777).toBe(0o700);
+	});
+
+	it("refuses to write state through a symlinked session directory", async () => {
+		const { client } = makeClient("");
+		const hooks = hooksOf(
+			await SolOpenCodePlugin(fakeInput(dataHome, client, fakeShell("", 0)), {
+				onlineContextCompact: { enabled: true },
+			}),
+		);
+		const sessionRoot = join(dataHome, projectSlug(dataHome), "s-symlink");
+		const redirectTarget = join(dataHome, "redirect-target");
+		await mkdir(dirname(sessionRoot), { recursive: true });
+		await mkdir(redirectTarget);
+		await symlink(redirectTarget, sessionRoot, "dir");
+
+		await call(hooks, "event")({ event: { type: "session.compacted", properties: { sessionID: "s-symlink" } } });
+		await new Promise((resolveDelay) => setTimeout(resolveDelay, 10));
+
+		await expect(lstat(join(redirectTarget, "online-context-compact"))).rejects.toThrow();
 	});
 });

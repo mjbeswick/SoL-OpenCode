@@ -16,9 +16,11 @@ under the session root:
 └── trajectory-inspector/events.jsonl
 ```
 
-- Object files are created with mode `0600` and directories with `0700`; writes
+- Archive object files are created with mode `0600` and their directories with `0700`; writes
   use `O_CREAT|O_EXCL|O_NOFOLLOW`, and an existing object is verified byte for
   byte before it is reused.
+- Online Context Compact's `state.json` contains plan text and is written with
+  mode `0600` inside a mode `0700` directory; symlink targets are refused.
 - Archives are **not** deleted when a session ends. Remove the session directory
   to reclaim space.
 - **Trajectory Inspector writes metadata only** — event kinds, timestamps,

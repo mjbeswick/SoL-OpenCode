@@ -1,6 +1,6 @@
 # SoL-OpenCode
 
-[简体中文](./README.md) | **English**
+**English** | [Original project](https://github.com/ImKK666/SoL-OpenCode)
 
 Standalone [OpenCode](https://opencode.ai) plugin porting SoL-Pi's context and
 tool-efficiency mechanisms. Every mechanism is **opt-in** and disabled by
@@ -26,7 +26,7 @@ DESIGN.md                            — the port design and phased plan
 - Node.js 22.19 or newer
 - [Bun](https://bun.sh) for installation (npm 10 has an arborist bug with
   vitest's peer graph)
-- OpenCode with plugin support (`@opencode-ai/plugin` 1.18.30)
+- OpenCode with plugin support (`@opencode-ai/plugin` 1.19.4 or newer)
 
 ## Install
 

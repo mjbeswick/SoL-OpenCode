@@ -16,7 +16,7 @@
 	},
 	"dependencies": {
 		"@alicekk/sol-opencode-core": "^0.1.0",
-		"@opencode-ai/plugin": "^1.18.30"
+		"@opencode-ai/plugin": "^1.19.4"
 	},
 	"engines": {
 		"node": ">=22.19.0"

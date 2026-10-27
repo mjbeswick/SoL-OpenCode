@@ -52,8 +52,9 @@ plugin/core trees, so editing the mechanisms after a freeze invalidates it.
 The provider block comes from the local model catalogue: `opencode-go` is an
 OpenAI-compatible endpoint (`npm: @ai-sdk/openai-compatible`,
 `api: https://opencode.ai/zen/go/v1`). The API key is read from
-`~/.local/share/opencode/auth.json` and passed as `OPENCODE_API_KEY` — never
-logged, never through a shell.
+`~/.local/share/opencode/auth.json` and supplied to Harbor through a protected,
+temporary job configuration with environment-variable substitution; it is not
+placed in Harbor's argument list or passed through a shell.
 
 ## Measurement
 

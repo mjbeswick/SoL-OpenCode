@@ -22,8 +22,8 @@
  * `datasetSubset` so a subset can never pass as a full held-out result.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { DEFAULT_MODEL } from "../config.mjs";
@@ -45,15 +45,23 @@ function loadCatalogue() {
 	return existsSync(MODELS_PATH) ? JSON.parse(readFileSync(MODELS_PATH, "utf8")) : {};
 }
 
-/** The provider API key, read from auth.json. Never logged, never passed to a shell. */
+/** The provider API key, read from auth.json; never put it in Harbor's argument list. */
 function providerApiKey(providerId) {
 	if (!existsSync(AUTH_PATH)) return undefined;
 	const auth = JSON.parse(readFileSync(AUTH_PATH, "utf8"));
 	return auth[providerId]?.key ?? auth[providerId]?.access;
 }
 
+function harborEnvironment(value) {
+	if (!value) return process.env;
+	const environment = { ...process.env };
+	environment.OPENCODE_API_KEY = value;
+	return environment;
+}
+
 function runHarbor({ arm, model, tasks, jobsDir, concurrency, pluginSpec }) {
 	const apiKey = providerApiKey(model.split("/")[0]);
+	const privateConfigDir = apiKey ? mkdtempSync(join(tmpdir(), "sol-opencode-harbor-")) : undefined;
 	const argv = [
 		"run",
 		"-d",
@@ -70,13 +78,30 @@ function runHarbor({ arm, model, tasks, jobsDir, concurrency, pluginSpec }) {
 		String(concurrency),
 		"--quiet",
 	];
-	if (apiKey) argv.push("--ae", `OPENCODE_API_KEY=${apiKey}`);
+	if (privateConfigDir !== undefined) {
+		const configPath = join(privateConfigDir, "job.json");
+		writeFileSync(
+			configPath,
+			JSON.stringify({
+				agents: [{ name: "opencode", env: { OPENCODE_API_KEY: "${OPENCODE_API_KEY}" } }],
+			}),
+			{ encoding: "utf8", mode: 0o600 },
+		);
+		argv.push("--config", configPath);
+	}
 	for (const task of tasks) argv.push("--include-task-name", `terminal-bench/${task}`);
 
 	const started = Date.now();
-	const proc = spawnSync(HARBOR, argv, { stdio: "inherit" });
-	if (proc.error) throw proc.error;
-	return { exitCode: proc.status, wallMs: Date.now() - started };
+	try {
+		const proc = spawnSync(HARBOR, argv, {
+			stdio: "inherit",
+			env: harborEnvironment(apiKey),
+		});
+		if (proc.error) throw proc.error;
+		return { exitCode: proc.status, wallMs: Date.now() - started };
+	} finally {
+		if (privateConfigDir !== undefined) rmSync(privateConfigDir, { recursive: true, force: true });
+	}
 }
 
 const argv = process.argv.slice(2);
