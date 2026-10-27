@@ -5,6 +5,7 @@
 import type { PluginInput } from "@opencode-ai/plugin";
 import { describe, expect, it } from "vitest";
 import { SolOpenCodePlugin } from "../src/index.ts";
+import SolOpenCodePluginV2 from "../src/v2/index.ts";
 
 function fakeInput(): PluginInput {
 	const client = {} as PluginInput["client"];
@@ -44,5 +45,12 @@ describe("SolOpenCodePlugin wiring", () => {
 	it("registers nothing when no mechanism is enabled", async () => {
 		const hooks = await SolOpenCodePlugin(fakeInput(), {});
 		expect(Object.keys(hooks)).toHaveLength(0);
+	});
+});
+
+describe("SolOpenCodePlugin V2 entrypoint", () => {
+	it("exports a stable OpenCode V2 plugin definition", () => {
+		expect(SolOpenCodePluginV2.id).toBe("sol-opencode");
+		expect(typeof SolOpenCodePluginV2.setup).toBe("function");
 	});
 });

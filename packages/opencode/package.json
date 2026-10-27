@@ -9,14 +9,16 @@
 	],
 	"main": "src/index.ts",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/v2/index.ts",
+		"./v1": "./src/index.ts"
 	},
 	"bin": {
 		"sol-trajectory": "./bin/sol-trajectory.mjs"
 	},
 	"dependencies": {
 		"@alicekk/sol-opencode-core": "^0.1.0",
-		"@opencode-ai/plugin": "^1.19.4"
+		"@opencode-ai/plugin": "^1.19.4",
+		"@opencode/plugin": "2.1.4"
 	},
 	"engines": {
 		"node": ">=22.19.0"

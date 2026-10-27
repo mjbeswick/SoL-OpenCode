@@ -1,5 +1,11 @@
 # Terminal-Bench 4.0 (held-out evaluation)
 
+> **OpenCode compatibility:** the default package entrypoint targets OpenCode 2.
+> The legacy OpenCode 1 adapter remains available at the package export
+> `@alicekk/sol-opencode/v1`. The V2 adapter uses explicit plan-boundary prompt
+> markers for Online Context Compact because V2 has no public todo-update hook;
+> automatic continuation is not performed.
+
 The held-out half of the benchmark. Where [`../`](../README.md) is a cheap,
 inspectable dev suite, this runs the **real external benchmark** upstream
 SoL-Pi reports on, under the [held-out discipline](../heldout/).

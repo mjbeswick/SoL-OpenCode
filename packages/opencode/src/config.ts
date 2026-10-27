@@ -34,6 +34,7 @@ export interface OnlineContextCompactConfig {
 	readonly cacheWriteReadRatio: number;
 	readonly keepRecentTokens: number;
 	readonly maxAutoContinuations: number;
+	readonly boundaryKeywords: readonly string[];
 }
 
 export interface SolConfig {
@@ -51,6 +52,7 @@ const DEFAULT_FULL_SENDS = 2;
 const DEFAULT_CACHE_WRITE_READ_RATIO = 12.5;
 const DEFAULT_KEEP_RECENT_TOKENS = 20_000;
 const DEFAULT_MAX_AUTO_CONTINUATIONS = 3;
+const DEFAULT_BOUNDARY_KEYWORDS = ["milestone complete", "phase complete", "implementation complete"] as const;
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -110,6 +112,7 @@ export function parseConfig(options: unknown): SolConfig {
 			cacheWriteReadRatio: readPositiveNumber(compact.cacheWriteReadRatio, DEFAULT_CACHE_WRITE_READ_RATIO),
 			keepRecentTokens: readPositiveInt(compact.keepRecentTokens, DEFAULT_KEEP_RECENT_TOKENS),
 			maxAutoContinuations: readPositiveInt(compact.maxAutoContinuations, DEFAULT_MAX_AUTO_CONTINUATIONS),
+			boundaryKeywords: readStringArray(compact.boundaryKeywords, DEFAULT_BOUNDARY_KEYWORDS),
 		},
 	};
 }

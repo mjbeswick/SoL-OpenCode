@@ -86,9 +86,21 @@ defaults.
 
 ---
 
+## OpenCode versions
+
+The package's default entrypoint targets OpenCode 2. OpenCode 1 users can select
+the legacy entrypoint explicitly as `@alicekk/sol-opencode/v1`.
+
+Online Context Compact on OpenCode 2 uses plan-boundary text markers instead of
+the V1 todo-update hook. A plan boundary is declared by a prompt containing a
+JSON array of remaining plan items and one of the configured boundary keywords
+(by default: `milestone complete`, `phase complete`, or `implementation complete`).
+V2's public API does not provide automatic task continuation; compaction is
+requested without issuing an extra prompt turn.
+
 ## Requirements
 
-- OpenCode with plugin support (`@opencode-ai/plugin` ≥ 1.19.4)
+- OpenCode 2.1.4 or newer (default entrypoint), or OpenCode 1.18.30 or newer (V1 entrypoint)
 - Node.js ≥ 22.19 — only needed for the optional `sol-trajectory` CLI
 
 ## Install
